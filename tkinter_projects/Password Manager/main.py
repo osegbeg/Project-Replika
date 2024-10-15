@@ -1,6 +1,7 @@
 # ---------------------------- PASSWORD MANAGER PROJECT ------------------------------- #
 
 import random
+import json
 import pyperclip
 from tkinter import *
 from tkinter import messagebox
@@ -47,6 +48,12 @@ def save_to_file():
     website_value = website_entry.get()
     username_value = username_entry.get()
     password_value = password_entry.get()
+    new_data = {
+        website_value: {
+        "username": username_value,
+        "password": password_value
+        }
+    }
 
     # Validate input fields
     if len(website_value) == 0 or len(username_value) == 0 or len(password_value) == 0:
@@ -61,18 +68,41 @@ def save_to_file():
                                        f"Do you want to proceed?")
         # Save password to file if confirmed
         if confirmed:
-            data = open("pw_docs.txt", "a")
-            data.write(f"\n website: {website_value} \n "
-                              f"username: {username_value} \n "
-                              f"password: {password_value} \n ")
-            data.close()
-            clear_screen()
+            try:
+                with open("data.json", "r") as data_file:
+                    data = json.load(data_file)
+            except FileNotFoundError:
+                with open("data.json", "w") as data_file:
+                    json.dump(new_data, data_file, indent=4)
+            else:
+                data.update(new_data)
+            finally:
+                clear_screen()
 
 # Function to clear input fields
 def clear_screen():
     website_entry.delete(0, END)
     password_entry.delete(0, END)
 
+
+# ---------------------------- FIND PASSWORD ------------------------------- #
+
+def find_password():
+    website_value = website_entry.get()
+    username_value = username_entry.get()
+    try:
+        with open("data.json", "r") as data_file:
+            data = json.load(data_file)
+    except FileNotFoundError:
+        messagebox.showerror(title="error", message="file not found")
+    else:
+        for (key, value) in data.items():
+            if key == website_value:
+                messagebox.showinfo(title=f"{website_value}", message=f"Username: {username_value} \n"
+                                                                      f"Password: {value["password"]}")
+                pyperclip.copy(value["password"])
+            else:
+                messagebox.showinfo(title="Password Details", message="You have not saved this website")
 
 # ---------------------------- UI SETUP ------------------------------- #
 # Create main window
@@ -97,8 +127,8 @@ password_label = Label(text="Password:")
 password_label.grid(column=0, row=3)
 
 # Create input fields
-website_entry = Entry(width=50)
-website_entry.grid(column=1, row=1, columnspan=2)
+website_entry = Entry(width=32)
+website_entry.grid(column=1, row=1)
 website_entry.focus()
 
 username_entry = Entry(width=50)
@@ -114,6 +144,9 @@ generate_password_button.grid(column=2, row=3)
 
 add_button = Button(text="Add", width=42, command=save_to_file)
 add_button.grid(column=1, row=4, columnspan=2)
+
+search_button = Button(text="Search", width=14, command=find_password)
+search_button.grid(column=2, row=1)
 
 
 
